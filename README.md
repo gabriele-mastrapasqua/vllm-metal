@@ -15,10 +15,12 @@ curl -fsSL https://raw.githubusercontent.com/vllm-project/vllm-metal/main/instal
 ### From Source
 
 ```bash
-git clone https://github.com/vllm-project/vllm-metal.git
+git clone --recursive https://github.com/vllm-project/vllm-metal.git
 cd vllm-metal
-uv pip install -e .
+scripts/ci.sh  # This will setup the dev environment
 ```
+
+**Note:** This project uses a specific version of PyTorch from a git submodule (`extern/pytorch`).
 
 ## Features
 
@@ -33,7 +35,6 @@ uv pip install -e .
 - macOS 12.3 or later
 - Apple Silicon Mac
 - Python 3.11 or later
-- PyTorch 2.1.0 or later with MPS support
 - vLLM 0.12.0 or later
 
 ## Configuration
