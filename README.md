@@ -138,29 +138,14 @@ Environment variables for customization:
 | `VLLM_METAL_BLOCK_SIZE` | `16` | KV cache block size |
 | `VLLM_METAL_DEBUG` | `0` | Enable debug logging |
 
-## Supported Models
-
-Any model supported by vLLM that uses standard transformer architectures:
-
-- **Llama family**: Llama 2, Llama 3, Code Llama
-- **Qwen family**: Qwen, Qwen2, Qwen2.5
-- **Mistral family**: Mistral, Mixtral
-- **Phi family**: Phi-2, Phi-3
-- **And many more...**
-
 ## Development
 
 ```bash
 # Install dev dependencies
 pip install -e '.[dev]'
 
-# Run tests
-pytest tests/ -v
-
-# Run linters
-ruff check .
-ruff format .
-mypy vllm_metal
+# Run tests and linters
+scripts/ci.sh
 ```
 
 ## License
