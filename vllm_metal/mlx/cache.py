@@ -82,8 +82,6 @@ def mlx_reshape_and_cache_flash(
         Updated (key_cache, value_cache) tuple.
     """
     block_size = key_cache.shape[1]
-    num_kv_heads = key.shape[1]
-    head_dim = key.shape[2]
 
     # Compute block indices and offsets
     block_indices = slot_mapping // block_size

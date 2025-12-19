@@ -2,17 +2,18 @@
 """Metal attention backend for vLLM."""
 
 from dataclasses import dataclass
-from typing import Any, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any
 
 import torch
 
 from vllm_metal._compat import (
     AttentionBackend,
-    AttentionImpl,
     AttentionMetadata,
-    AttentionType,
     init_logger,
 )
+
+if TYPE_CHECKING:
+    from vllm_metal.attention.metal_attention import MetalAttentionImpl
 
 logger = init_logger(__name__)
 
@@ -31,13 +32,13 @@ class MetalAttentionMetadata(AttentionMetadata):
     max_seq_len: int = 0
 
     # Prefill metadata
-    query_start_loc: Optional[torch.Tensor] = None  # [num_seqs + 1]
-    seq_lens: Optional[torch.Tensor] = None  # [num_seqs]
-    context_lens: Optional[torch.Tensor] = None  # [num_seqs]
+    query_start_loc: torch.Tensor | None = None  # [num_seqs + 1]
+    seq_lens: torch.Tensor | None = None  # [num_seqs]
+    context_lens: torch.Tensor | None = None  # [num_seqs]
 
     # Decode metadata
-    block_table: Optional[torch.Tensor] = None  # [num_seqs, max_num_blocks]
-    slot_mapping: Optional[torch.Tensor] = None  # [num_tokens]
+    block_table: torch.Tensor | None = None  # [num_seqs, max_num_blocks]
+    slot_mapping: torch.Tensor | None = None  # [num_tokens]
 
     # For paged attention
     max_num_blocks_per_seq: int = 0
@@ -83,9 +84,9 @@ class MetalAttentionMetadataBuilder:
     def __init__(
         self,
         kv_cache_spec: Any = None,
-        layer_names: Optional[List[str]] = None,
+        layer_names: list[str] | None = None,
         vllm_config: Any = None,
-        device: torch.device = torch.device("mps"),
+        device: torch.device | None = None,
     ):
         """Initialize the metadata builder.
 
@@ -99,12 +100,12 @@ class MetalAttentionMetadataBuilder:
         self.layer_names = layer_names or []
         self.vllm_config = vllm_config
         # Handle device parameter - can be string or torch.device
-        if isinstance(device, str):
-            self.device = torch.device(device)
-        elif device is not None:
-            self.device = device
-        else:
+        if device is None:
             self.device = torch.device("mps")
+        elif isinstance(device, str):
+            self.device = torch.device(device)
+        else:
+            self.device = device
 
     def build(
         self,
@@ -137,8 +138,8 @@ class MetalAttentionMetadataBuilder:
 
     def build_prefill_metadata(
         self,
-        seq_lens: List[int],
-        query_lens: List[int],
+        seq_lens: list[int],
+        query_lens: list[int],
         slot_mapping: torch.Tensor,
     ) -> MetalAttentionMetadata:
         """Build metadata for prefill phase.
@@ -181,7 +182,7 @@ class MetalAttentionMetadataBuilder:
 
     def build_decode_metadata(
         self,
-        seq_lens: List[int],
+        seq_lens: list[int],
         block_table: torch.Tensor,
         slot_mapping: torch.Tensor,
     ) -> MetalAttentionMetadata:
@@ -232,19 +233,19 @@ class MetalAttentionBackend(AttentionBackend):
         return "metal"
 
     @staticmethod
-    def get_impl_cls() -> Type["MetalAttentionImpl"]:
+    def get_impl_cls() -> type["MetalAttentionImpl"]:
         """Get the implementation class."""
         from vllm_metal.attention.metal_attention import MetalAttentionImpl
 
         return MetalAttentionImpl
 
     @staticmethod
-    def get_metadata_cls() -> Type[MetalAttentionMetadata]:
+    def get_metadata_cls() -> type[MetalAttentionMetadata]:
         """Get the metadata class."""
         return MetalAttentionMetadata
 
     @staticmethod
-    def get_builder_cls() -> Type[MetalAttentionMetadataBuilder]:
+    def get_builder_cls() -> type[MetalAttentionMetadataBuilder]:
         """Get the metadata builder class."""
         return MetalAttentionMetadataBuilder
 
@@ -254,7 +255,7 @@ class MetalAttentionBackend(AttentionBackend):
         block_size: int,
         num_kv_heads: int,
         head_size: int,
-    ) -> Tuple[int, ...]:
+    ) -> tuple[int, ...]:
         """Get the shape of the KV cache.
 
         vLLM V1 allocates K and V together, so the shape includes
@@ -288,7 +289,7 @@ class MetalAttentionBackend(AttentionBackend):
 
     @staticmethod
     def copy_blocks(
-        kv_caches: List[torch.Tensor],
+        kv_caches: list[torch.Tensor],
         src_to_dists: torch.Tensor,
     ) -> None:
         """Copy KV cache blocks.

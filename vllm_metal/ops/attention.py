@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Metal paged attention operations."""
 
-from typing import Optional
-
 import torch
 
 from vllm_metal.mlx import (
@@ -23,7 +21,7 @@ def paged_attention_v1(
     seq_lens: torch.Tensor,
     block_size: int,
     max_seq_len: int,
-    alibi_slopes: Optional[torch.Tensor] = None,
+    alibi_slopes: torch.Tensor | None = None,
     kv_cache_dtype: str = "auto",
     k_scale: float = 1.0,
     v_scale: float = 1.0,
@@ -48,7 +46,6 @@ def paged_attention_v1(
         k_scale: Key scale factor (for FP8).
         v_scale: Value scale factor (for FP8).
     """
-    import mlx.core as mx
 
     # Convert to MLX
     q_mlx = to_mlx(query)
@@ -100,7 +97,7 @@ def paged_attention_v2(
     seq_lens: torch.Tensor,
     block_size: int,
     max_seq_len: int,
-    alibi_slopes: Optional[torch.Tensor] = None,
+    alibi_slopes: torch.Tensor | None = None,
     kv_cache_dtype: str = "auto",
     k_scale: float = 1.0,
     v_scale: float = 1.0,

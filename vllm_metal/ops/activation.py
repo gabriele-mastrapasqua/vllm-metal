@@ -57,7 +57,6 @@ def gelu_and_mul(
         output: Output tensor [*, d].
         input: Input tensor [*, 2*d].
     """
-    import mlx.core as mx
     import mlx.nn as nn
 
     # Convert to MLX
@@ -94,7 +93,6 @@ def gelu_tanh_and_mul(
         output: Output tensor [*, d].
         input: Input tensor [*, 2*d].
     """
-    import mlx.core as mx
     import mlx.nn as nn
 
     # Convert to MLX
@@ -129,7 +127,6 @@ def relu_and_mul(
         output: Output tensor [*, d].
         input: Input tensor [*, 2*d].
     """
-    import mlx.core as mx
     import mlx.nn as nn
 
     # Convert to MLX

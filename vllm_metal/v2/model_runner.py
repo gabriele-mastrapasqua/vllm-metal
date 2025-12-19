@@ -57,7 +57,6 @@ except ImportError:
 # Apple Silicon has true unified memory, so we can use regular tensors
 try:
     import vllm.v1.worker.gpu.states as states_module
-    import numpy as np
 
     # Apple Silicon has unified memory - similar to UVA
     states_module.is_uva_available = lambda: True
@@ -74,6 +73,7 @@ try:
         MPS operations can accept CPU tensors directly (with auto data movement).
         This ensures writes to cpu/np are immediately visible to gpu.
         """
+
         def __init__(self, *size, dtype):
             # Keep everything on CPU - this is the source of truth
             self.cpu = torch.zeros(*size, dtype=dtype, device="cpu")
@@ -92,6 +92,7 @@ except ImportError as e:
 # =============================================================================
 try:
     import vllm.v1.worker.gpu.block_table as block_table_module
+
     from vllm_metal.v2.metal_block_table import MetalBlockTables
 
     # Replace the entire BlockTables class with our Metal implementation
@@ -159,8 +160,10 @@ except ImportError as e:
 # Mock classes for CUDA compatibility on MPS
 # =============================================================================
 
+
 class _MockCudaStream:
     """Mock CUDA stream for MPS compatibility."""
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -179,6 +182,7 @@ class _MockCudaStream:
 
 class _MockCudaEvent:
     """Mock CUDA event for MPS compatibility."""
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -197,6 +201,7 @@ class _MockCudaEvent:
 
 class _MockCudaGraphManager:
     """Mock CudaGraphManager for MPS compatibility."""
+
     def __init__(self, vllm_config, device):
         self.vllm_config = vllm_config
         self.device = device
@@ -228,6 +233,7 @@ class _MockCudaGraphManager:
 # Patch CudaGraphManager BEFORE importing GPUModelRunner
 try:
     import vllm.v1.worker.gpu.cudagraph_utils as cudagraph_utils_module
+
     cudagraph_utils_module.CudaGraphManager = _MockCudaGraphManager
     logger.debug("Patched CudaGraphManager for Metal")
 except ImportError as e:
@@ -242,11 +248,11 @@ from vllm.v1.worker.gpu.attn_utils import (  # noqa: E402
     init_attn_backend,
     init_kv_cache,
 )
-from vllm.v1.worker.gpu.model_runner import GPUModelRunner  # noqa: E402
 
 # Use our Metal-compatible BlockTables (pure PyTorch, no Triton)
 # Note: block_table_module.BlockTables is already patched above
 from vllm.v1.worker.gpu.block_table import BlockTables  # noqa: E402
+from vllm.v1.worker.gpu.model_runner import GPUModelRunner  # noqa: E402
 
 # Patch states module's bincount reference
 try:
@@ -268,13 +274,13 @@ def _patch_cuda_for_mps():
     original_stream = torch.cuda.Stream
     original_event = torch.cuda.Event
     original_current_stream = torch.cuda.current_stream
-    original_graph_pool = getattr(torch.cuda, 'graph_pool_handle', None)
+    original_graph_pool = getattr(torch.cuda, "graph_pool_handle", None)
 
     try:
-        torch.cuda.Stream = _MockCudaStream
-        torch.cuda.Event = _MockCudaEvent
-        torch.cuda.current_stream = lambda device=None: _MockCudaStream()
-        torch.cuda.graph_pool_handle = lambda: None
+        torch.cuda.Stream = _MockCudaStream  # type: ignore[assignment]
+        torch.cuda.Event = _MockCudaEvent  # type: ignore[assignment]
+        torch.cuda.current_stream = lambda device=None: _MockCudaStream()  # type: ignore[assignment,return-value]
+        torch.cuda.graph_pool_handle = lambda: None  # type: ignore[assignment,return-value]
         yield
     finally:
         torch.cuda.Stream = original_stream
@@ -381,7 +387,9 @@ class MetalModelRunner(GPUModelRunner):
         )
 
         # Metal backend - no FLASH_ATTN check needed
-        logger.info(f"Metal attention backends initialized: {list(self.attn_backends.keys())}")
+        logger.info(
+            f"Metal attention backends initialized: {list(self.attn_backends.keys())}"
+        )
 
         self.kv_caches: list[torch.Tensor] = []
         init_kv_cache(

@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Metal rotary embedding operations."""
 
-from typing import Optional, Tuple
-
 import torch
 
 from vllm_metal.mlx import mlx_rotary_embedding, to_mlx, to_torch
@@ -15,7 +13,7 @@ def rotary_embedding(
     head_size: int,
     cos_sin_cache: torch.Tensor,
     is_neox: bool = True,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Apply rotary position embeddings using MLX.
 
     Args:

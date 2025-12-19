@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """Metal attention implementation using MLX."""
 
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any
 
 import torch
 
-from vllm_metal._compat import AttentionImpl, AttentionType, init_logger
+from vllm_metal._compat import AttentionImpl, init_logger
 from vllm_metal.attention.backend import MetalAttentionMetadata
 
 logger = init_logger(__name__)
@@ -25,11 +25,11 @@ class MetalAttentionImpl(AttentionImpl):
         head_size: int,
         scale: float,
         num_kv_heads: int,
-        alibi_slopes: Optional[List[float]] = None,
-        sliding_window: Optional[int] = None,
+        alibi_slopes: list[float] | None = None,
+        sliding_window: int | None = None,
         kv_cache_dtype: str = "auto",
-        blocksparse_params: Optional[Dict[str, Any]] = None,
-        logits_soft_cap: Optional[float] = None,
+        blocksparse_params: dict[str, Any] | None = None,
+        logits_soft_cap: float | None = None,
         attn_type: str = "decoder",
     ):
         """Initialize Metal attention.
@@ -64,9 +64,7 @@ class MetalAttentionImpl(AttentionImpl):
         if logits_soft_cap is not None:
             logger.warning("Logits soft cap not supported on Metal")
         if sliding_window is not None:
-            logger.warning(
-                "Sliding window attention has limited support on Metal"
-            )
+            logger.warning("Sliding window attention has limited support on Metal")
 
         logger.debug(
             f"MetalAttentionImpl initialized: "
@@ -80,9 +78,9 @@ class MetalAttentionImpl(AttentionImpl):
         query: torch.Tensor,
         key: torch.Tensor,
         value: torch.Tensor,
-        kv_cache: Tuple[torch.Tensor, torch.Tensor],
+        kv_cache: tuple[torch.Tensor, torch.Tensor],
         attn_metadata: MetalAttentionMetadata,
-        output: Optional[torch.Tensor] = None,
+        output: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Forward pass for attention.
 
@@ -192,7 +190,6 @@ class MetalAttentionImpl(AttentionImpl):
         """
         # For single-sequence batch (common with chunked prefill),
         # treat all tokens as one sequence with causal masking
-        num_tokens = query.shape[0]
 
         # Reshape: [total_tokens, num_heads, head_size] -> [1, num_heads, seq, head_size]
         q = query.transpose(0, 1).unsqueeze(0)
@@ -244,6 +241,7 @@ class MetalAttentionImpl(AttentionImpl):
         # For decode, we have one query token per sequence
         # Gather K/V from cache using block_table
         # IMPORTANT: Use actual max sequence length from seq_lens, not max_model_len
+        assert seq_lens is not None, "seq_lens required for decode"
         max_seq_len = int(seq_lens.max().item())
 
         # Flatten cache for indexing: [total_slots, num_kv_heads, head_size]
@@ -252,6 +250,7 @@ class MetalAttentionImpl(AttentionImpl):
 
         # Compute slot indices from block_table
         # block_table contains block IDs, we need to convert to slot indices
+        assert block_table is not None, "block_table required for decode"
         max_blocks_per_seq = block_table.shape[1]
 
         # Create position indices within blocks: [max_seq_len]
@@ -263,19 +262,27 @@ class MetalAttentionImpl(AttentionImpl):
         # block_table: [batch, max_blocks], block_indices: [max_seq_len]
         # We need block_table[b, block_indices[p]] for each batch b and position p
         block_indices_clamped = block_indices.clamp(max=max_blocks_per_seq - 1)
-        gathered_blocks = block_table[:, block_indices_clamped.long()]  # [batch, max_seq_len]
+        gathered_blocks = block_table[
+            :, block_indices_clamped.long()
+        ]  # [batch, max_seq_len]
 
         # Convert to flat slot indices
         slot_indices = gathered_blocks * block_size + offsets  # [batch, max_seq_len]
 
         # Gather K/V: [batch, max_seq_len, num_kv_heads, head_size]
         slot_indices_flat = slot_indices.view(-1).long()
-        k_gathered = flat_key_cache[slot_indices_flat].view(batch_size, max_seq_len, num_kv_heads, head_size)
-        v_gathered = flat_value_cache[slot_indices_flat].view(batch_size, max_seq_len, num_kv_heads, head_size)
+        k_gathered = flat_key_cache[slot_indices_flat].view(
+            batch_size, max_seq_len, num_kv_heads, head_size
+        )
+        v_gathered = flat_value_cache[slot_indices_flat].view(
+            batch_size, max_seq_len, num_kv_heads, head_size
+        )
 
         # Create attention mask based on sequence lengths
         # Mask out positions beyond seq_len for each batch
-        position_ids = torch.arange(max_seq_len, device=query.device).unsqueeze(0)  # [1, max_seq_len]
+        position_ids = torch.arange(max_seq_len, device=query.device).unsqueeze(
+            0
+        )  # [1, max_seq_len]
         attn_mask = position_ids < seq_lens.unsqueeze(1)  # [batch, max_seq_len]
         attn_mask = attn_mask.unsqueeze(1).unsqueeze(2)  # [batch, 1, 1, max_seq_len]
 

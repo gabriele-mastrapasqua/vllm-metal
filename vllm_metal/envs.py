@@ -31,6 +31,4 @@ VLLM_METAL_DEBUG: bool = os.environ.get("VLLM_METAL_DEBUG", "0") == "1"
 
 # Maximum number of sequences to batch together.
 # Lower values reduce memory but may decrease throughput.
-VLLM_METAL_MAX_BATCH_SIZE: int = int(
-    os.environ.get("VLLM_METAL_MAX_BATCH_SIZE", "256")
-)
+VLLM_METAL_MAX_BATCH_SIZE: int = int(os.environ.get("VLLM_METAL_MAX_BATCH_SIZE", "256"))

@@ -10,15 +10,16 @@ class TestUtilityFunctions:
     def test_is_apple_silicon(self):
         """Test is_apple_silicon detection."""
         import platform
+
         from vllm_metal.utils import is_apple_silicon
 
         result = is_apple_silicon()
         assert isinstance(result, bool)
 
         # Verify consistency with platform info
-        expected = (
-            platform.system() == "Darwin"
-            and platform.machine() in ("arm64", "aarch64")
+        expected = platform.system() == "Darwin" and platform.machine() in (
+            "arm64",
+            "aarch64",
         )
         assert result == expected
 
@@ -31,7 +32,13 @@ class TestUtilityFunctions:
         assert isinstance(name, str)
         assert len(name) > 0
         # Should contain "Apple" for Apple Silicon
-        assert "Apple" in name or "M1" in name or "M2" in name or "M3" in name or "M4" in name
+        assert (
+            "Apple" in name
+            or "M1" in name
+            or "M2" in name
+            or "M3" in name
+            or "M4" in name
+        )
 
     def test_get_apple_chip_name_non_apple(self):
         """Test chip name on non-Apple platforms."""
@@ -166,7 +173,7 @@ class TestConfig:
 
     def test_global_config(self):
         """Test global config getter/setter."""
-        from vllm_metal.config import get_metal_config, set_metal_config, MetalConfig
+        from vllm_metal.config import MetalConfig, get_metal_config, set_metal_config
 
         # Get default config
         config = get_metal_config()

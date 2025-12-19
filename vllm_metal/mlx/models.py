@@ -5,8 +5,6 @@ This module provides a complete transformer implementation in MLX,
 avoiding any PyTorch dependencies during forward pass.
 """
 
-from typing import Optional, Tuple
-
 import mlx.core as mx
 import mlx.nn as nn
 
@@ -53,8 +51,8 @@ class RotaryEmbedding:
             Tensor with rotary embedding applied
         """
         seq_len = x.shape[1]
-        cos = self._cos[offset:offset + seq_len]
-        sin = self._sin[offset:offset + seq_len]
+        cos = self._cos[offset : offset + seq_len]
+        sin = self._sin[offset : offset + seq_len]
 
         # Reshape for broadcasting: [seq_len, head_dim/2] -> [1, seq_len, 1, head_dim/2]
         cos = cos[None, :, None, :]
@@ -86,7 +84,7 @@ class Attention(nn.Module):
         self.num_heads = num_heads
         self.num_kv_heads = num_kv_heads
         self.head_dim = head_dim
-        self.scale = head_dim ** -0.5
+        self.scale = head_dim**-0.5
         self.qk_norm = qk_norm
 
         # Number of query heads per KV head (for GQA)
@@ -109,9 +107,9 @@ class Attention(nn.Module):
     def __call__(
         self,
         x: mx.array,
-        mask: Optional[mx.array] = None,
-        cache: Optional[Tuple[mx.array, mx.array]] = None,
-    ) -> Tuple[mx.array, Optional[Tuple[mx.array, mx.array]]]:
+        mask: mx.array | None = None,
+        cache: tuple[mx.array, mx.array] | None = None,
+    ) -> tuple[mx.array, tuple[mx.array, mx.array] | None]:
         """Forward pass.
 
         Args:
@@ -235,9 +233,9 @@ class TransformerBlock(nn.Module):
     def __call__(
         self,
         x: mx.array,
-        mask: Optional[mx.array] = None,
-        cache: Optional[Tuple[mx.array, mx.array]] = None,
-    ) -> Tuple[mx.array, Optional[Tuple[mx.array, mx.array]]]:
+        mask: mx.array | None = None,
+        cache: tuple[mx.array, mx.array] | None = None,
+    ) -> tuple[mx.array, tuple[mx.array, mx.array] | None]:
         # Pre-norm attention
         residual = x
         x = self.attention_norm(x)
@@ -278,7 +276,7 @@ class MLXTransformer(nn.Module):
                 rms_norm_eps=config.rms_norm_eps,
                 rope_theta=config.rope_theta,
                 max_seq_len=config.max_position_embeddings,
-                qk_norm=getattr(config, 'qk_norm', False),
+                qk_norm=getattr(config, "qk_norm", False),
             )
             for _ in range(config.num_hidden_layers)
         ]
@@ -294,8 +292,8 @@ class MLXTransformer(nn.Module):
     def __call__(
         self,
         input_ids: mx.array,
-        cache: Optional[list] = None,
-    ) -> Tuple[mx.array, Optional[list]]:
+        cache: list | None = None,
+    ) -> tuple[mx.array, list | None]:
         """Forward pass.
 
         Args:
@@ -311,12 +309,10 @@ class MLXTransformer(nn.Module):
         # Create causal mask
         seq_len = input_ids.shape[1]
         if cache is not None and cache[0] is not None:
-            # Incremental decoding - only mask for new tokens
-            offset = cache[0][0].shape[1]
-            mask = None  # No mask needed for single token
+            # Incremental decoding - no mask needed for single token
+            mask = None
         else:
             # Full prefill - create causal mask
-            offset = 0
             if seq_len > 1:
                 mask = mx.triu(mx.full((seq_len, seq_len), float("-inf")), k=1)
                 mask = mask[None, None, :, :]  # [1, 1, seq, seq]
@@ -342,10 +338,10 @@ class MLXTransformer(nn.Module):
     def generate_step(
         self,
         input_ids: mx.array,
-        cache: Optional[list] = None,
+        cache: list | None = None,
         temperature: float = 1.0,
         top_p: float = 1.0,
-    ) -> Tuple[mx.array, list]:
+    ) -> tuple[mx.array, list | None]:
         """Generate a single token.
 
         Args:
@@ -378,14 +374,19 @@ class MLXTransformer(nn.Module):
                 cutoff_mask = cumsum > top_p
                 # Keep at least one token
                 cutoff_mask = mx.concatenate(
-                    [mx.zeros((logits.shape[0], 1), dtype=mx.bool_),
-                     cutoff_mask[:, :-1]], axis=-1
+                    [
+                        mx.zeros((logits.shape[0], 1), dtype=mx.bool_),
+                        cutoff_mask[:, :-1],
+                    ],
+                    axis=-1,
                 )
                 sorted_logits = mx.where(cutoff_mask, float("-inf"), sorted_logits)
 
                 # Unsort
                 logits = mx.zeros_like(logits)
-                logits = mx.put_along_axis(logits, sorted_indices, sorted_logits, axis=-1)
+                logits = mx.put_along_axis(
+                    logits, sorted_indices, sorted_logits, axis=-1
+                )
 
             # Sample
             probs = mx.softmax(logits, axis=-1)
@@ -402,7 +403,7 @@ class MLXTransformer(nn.Module):
         max_tokens: int = 100,
         temperature: float = 1.0,
         top_p: float = 1.0,
-        eos_token_id: Optional[int] = None,
+        eos_token_id: int | None = None,
     ) -> mx.array:
         """Generate tokens autoregressively.
 

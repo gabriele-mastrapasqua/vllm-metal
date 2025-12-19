@@ -8,8 +8,10 @@ import torch
 IS_APPLE_SILICON = False
 try:
     import platform
-    IS_APPLE_SILICON = (
-        platform.system() == "Darwin" and platform.machine() in ("arm64", "aarch64")
+
+    IS_APPLE_SILICON = platform.system() == "Darwin" and platform.machine() in (
+        "arm64",
+        "aarch64",
     )
 except Exception:
     pass
@@ -17,7 +19,8 @@ except Exception:
 # Check for MLX
 HAS_MLX = False
 try:
-    import mlx.core as mx
+    import mlx.core as mx  # noqa: F401
+
     HAS_MLX = True
 except ImportError:
     pass
@@ -28,16 +31,12 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "apple_silicon: mark test as requiring Apple Silicon"
     )
-    config.addinivalue_line(
-        "markers", "mlx: mark test as requiring MLX"
-    )
+    config.addinivalue_line("markers", "mlx: mark test as requiring MLX")
 
 
 def pytest_collection_modifyitems(config, items):
     """Skip tests based on available hardware."""
-    skip_apple_silicon = pytest.mark.skip(
-        reason="Test requires Apple Silicon"
-    )
+    skip_apple_silicon = pytest.mark.skip(reason="Test requires Apple Silicon")
     skip_mlx = pytest.mark.skip(reason="Test requires MLX")
 
     for item in items:
@@ -53,6 +52,7 @@ def mlx_device():
     if not HAS_MLX:
         pytest.skip("MLX not available")
     import mlx.core as mx
+
     return mx.gpu if IS_APPLE_SILICON else mx.cpu
 
 
@@ -73,16 +73,28 @@ def sample_tensors(torch_device):
     head_size = 64
 
     query = torch.randn(
-        batch_size, seq_len, num_heads, head_size,
-        device=torch_device, dtype=torch.float16
+        batch_size,
+        seq_len,
+        num_heads,
+        head_size,
+        device=torch_device,
+        dtype=torch.float16,
     )
     key = torch.randn(
-        batch_size, seq_len, num_heads, head_size,
-        device=torch_device, dtype=torch.float16
+        batch_size,
+        seq_len,
+        num_heads,
+        head_size,
+        device=torch_device,
+        dtype=torch.float16,
     )
     value = torch.randn(
-        batch_size, seq_len, num_heads, head_size,
-        device=torch_device, dtype=torch.float16
+        batch_size,
+        seq_len,
+        num_heads,
+        head_size,
+        device=torch_device,
+        dtype=torch.float16,
     )
 
     return {
@@ -105,12 +117,20 @@ def kv_cache_tensors(torch_device):
     head_size = 64
 
     key_cache = torch.zeros(
-        num_blocks, block_size, num_kv_heads, head_size,
-        device=torch_device, dtype=torch.float16
+        num_blocks,
+        block_size,
+        num_kv_heads,
+        head_size,
+        device=torch_device,
+        dtype=torch.float16,
     )
     value_cache = torch.zeros(
-        num_blocks, block_size, num_kv_heads, head_size,
-        device=torch_device, dtype=torch.float16
+        num_blocks,
+        block_size,
+        num_kv_heads,
+        head_size,
+        device=torch_device,
+        dtype=torch.float16,
     )
 
     return {

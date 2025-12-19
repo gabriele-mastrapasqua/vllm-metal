@@ -9,7 +9,7 @@ version = "0.1.0"
 description = "vLLM hardware plugin for Apple Silicon - unifies MLX and PyTorch under a single lowering path"
 readme = "README.md"
 license = {text = "Apache-2.0"}
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.12,<3.14"
 authors = [
     {name = "vLLM Community"}
 ]
@@ -20,7 +20,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: MacOS :: MacOS X",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -76,15 +75,15 @@ include = ["vllm_metal*"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
-exclude = ["extern"]
+target-version = "py312"
+exclude = ["extern", ".venv*", "test_vllm.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "C4"]
 ignore = ["E501"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 warn_return_any = false
 warn_unused_configs = true
 ignore_missing_imports = true

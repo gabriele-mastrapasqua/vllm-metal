@@ -57,9 +57,9 @@ def gumbel_sample(
             non_greedy_temps = temperatures[non_greedy_mask]
             temp_mask = non_greedy_temps > 0
             if temp_mask.any():
-                non_greedy_logits[temp_mask] = (
-                    non_greedy_logits[temp_mask] / non_greedy_temps[temp_mask].unsqueeze(-1)
-                )
+                non_greedy_logits[temp_mask] = non_greedy_logits[
+                    temp_mask
+                ] / non_greedy_temps[temp_mask].unsqueeze(-1)
 
         # Generate Gumbel noise: -log(-log(uniform))
         # Using a small epsilon to avoid log(0)
@@ -77,7 +77,6 @@ def gumbel_sample(
         # Add noise to logits and take argmax
         noisy_logits = non_greedy_logits + gumbel_noise
         samples[non_greedy_mask] = torch.argmax(noisy_logits, dim=-1)
-
 
     return samples
 
@@ -108,9 +107,9 @@ def gumbel_sample_batch(
     temp_mask = temperatures > 0
     logits_scaled = logits.clone()
     if temp_mask.any():
-        logits_scaled[temp_mask] = (
-            logits[temp_mask] / temperatures[temp_mask].unsqueeze(-1)
-        )
+        logits_scaled[temp_mask] = logits[temp_mask] / temperatures[
+            temp_mask
+        ].unsqueeze(-1)
 
     # Apply top-k filtering if provided
     if top_k is not None:

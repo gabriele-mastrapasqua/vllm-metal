@@ -11,7 +11,7 @@ This approach gives:
 """
 
 import logging
-from typing import Optional, List, Tuple, Iterator, Callable
+from collections.abc import Iterator
 
 import mlx.core as mx
 import mlx_lm
@@ -59,10 +59,7 @@ class MLXLMEngine:
     def _warmup(self):
         """Warmup the model to ensure kernels are compiled."""
         _ = mlx_lm.generate(
-            self.model, self.tokenizer,
-            prompt="Hello",
-            max_tokens=5,
-            verbose=False
+            self.model, self.tokenizer, prompt="Hello", max_tokens=5, verbose=False
         )
         mx.eval([])
 
@@ -116,8 +113,10 @@ class MLXLMEngine:
 
         # Pad to same length and stack
         max_len = max(len(o) for o in all_outputs)
-        padded = [o + [self.tokenizer.pad_token_id or 0] * (max_len - len(o))
-                  for o in all_outputs]
+        padded = [
+            o + [self.tokenizer.pad_token_id or 0] * (max_len - len(o))
+            for o in all_outputs
+        ]
 
         return torch.tensor(padded, dtype=torch.long)
 
@@ -157,7 +156,7 @@ class MLXLMEngine:
     def prefill(
         self,
         input_ids: torch.Tensor,
-    ) -> Tuple[torch.Tensor, object]:
+    ) -> tuple[torch.Tensor, object]:
         """Prefill phase - process prompt and return logits.
 
         Args:
@@ -184,7 +183,7 @@ class MLXLMEngine:
         self,
         input_ids: torch.Tensor,
         cache: object = None,
-    ) -> Tuple[torch.Tensor, object]:
+    ) -> tuple[torch.Tensor, object]:
         """Single decode step.
 
         Args:
@@ -207,7 +206,7 @@ class MLXLMEngine:
     @property
     def config(self):
         """Get model config."""
-        return self.model.config if hasattr(self.model, 'config') else None
+        return self.model.config if hasattr(self.model, "config") else None
 
 
 def create_mlx_lm_engine(model_name: str) -> MLXLMEngine:

@@ -44,9 +44,7 @@ class MetalConfig:
             )
 
         if self.block_size not in (8, 16, 32):
-            raise ValueError(
-                f"block_size must be 8, 16, or 32, got {self.block_size}"
-            )
+            raise ValueError(f"block_size must be 8, 16, or 32, got {self.block_size}")
 
         if self.max_batch_size < 1:
             raise ValueError(

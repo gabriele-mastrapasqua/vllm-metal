@@ -44,7 +44,9 @@ def apply_penalties_and_temperature(
     if needs_penalties:
         # Get the bin data for penalty application
         idx_mapping = sampling_metadata.idx_mapping
-        output_bin_counts = sampling_metadata.output_bin_counts  # [max_num_reqs, vocab_size]
+        output_bin_counts = (
+            sampling_metadata.output_bin_counts
+        )  # [max_num_reqs, vocab_size]
 
         for req_idx in range(num_reqs):
             slot_idx = int(idx_mapping[req_idx])
@@ -66,8 +68,12 @@ def apply_penalties_and_temperature(
                         if token_mask.any():
                             pos_mask = token_mask & (logits[req_idx] > 0)
                             neg_mask = token_mask & (logits[req_idx] <= 0)
-                            logits[req_idx, pos_mask] = logits[req_idx, pos_mask] / rep_penalty
-                            logits[req_idx, neg_mask] = logits[req_idx, neg_mask] * rep_penalty
+                            logits[req_idx, pos_mask] = (
+                                logits[req_idx, pos_mask] / rep_penalty
+                            )
+                            logits[req_idx, neg_mask] = (
+                                logits[req_idx, neg_mask] * rep_penalty
+                            )
 
                     # Apply presence penalty (subtract for each unique token)
                     if pres_penalty != 0.0:
@@ -76,7 +82,9 @@ def apply_penalties_and_temperature(
 
                     # Apply frequency penalty (subtract proportional to count)
                     if freq_penalty != 0.0:
-                        logits[req_idx] = logits[req_idx] - freq_penalty * output_counts.float()
+                        logits[req_idx] = (
+                            logits[req_idx] - freq_penalty * output_counts.float()
+                        )
 
     # Apply temperature scaling (always needed)
     for req_idx in range(num_reqs):

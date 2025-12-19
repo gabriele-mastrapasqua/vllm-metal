@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for Metal operations."""
 
-import pytest
 import numpy as np
+import pytest
 
 
 @pytest.mark.mlx
@@ -12,6 +12,7 @@ class TestNormalization:
     def test_rms_norm(self, torch_device):
         """Test RMS normalization."""
         import torch
+
         from vllm_metal.mlx import mlx_rms_norm, to_mlx, to_torch
 
         hidden_size = 64
@@ -38,6 +39,7 @@ class TestNormalization:
     def test_fused_add_rms_norm(self, torch_device):
         """Test fused residual add + RMS normalization."""
         import torch
+
         from vllm_metal.mlx import mlx_fused_add_rms_norm, to_mlx, to_torch
 
         hidden_size = 64
@@ -81,6 +83,7 @@ class TestActivations:
     def test_silu_and_mul(self, torch_device):
         """Test SiLU activation with gated multiplication."""
         import torch
+
         from vllm_metal.ops import silu_and_mul
 
         hidden_size = 64
@@ -88,12 +91,10 @@ class TestActivations:
 
         # Create input [batch, 2 * hidden]
         input_tensor = torch.randn(
-            batch_size, 2 * hidden_size,
-            device=torch_device, dtype=torch.float32
+            batch_size, 2 * hidden_size, device=torch_device, dtype=torch.float32
         )
         output = torch.zeros(
-            batch_size, hidden_size,
-            device=torch_device, dtype=torch.float32
+            batch_size, hidden_size, device=torch_device, dtype=torch.float32
         )
 
         silu_and_mul(output, input_tensor)
@@ -107,18 +108,17 @@ class TestActivations:
     def test_gelu_and_mul(self, torch_device):
         """Test GELU activation with gated multiplication."""
         import torch
+
         from vllm_metal.ops import gelu_and_mul
 
         hidden_size = 64
         batch_size = 4
 
         input_tensor = torch.randn(
-            batch_size, 2 * hidden_size,
-            device=torch_device, dtype=torch.float32
+            batch_size, 2 * hidden_size, device=torch_device, dtype=torch.float32
         )
         output = torch.zeros(
-            batch_size, hidden_size,
-            device=torch_device, dtype=torch.float32
+            batch_size, hidden_size, device=torch_device, dtype=torch.float32
         )
 
         gelu_and_mul(output, input_tensor)
@@ -134,23 +134,29 @@ class TestCache:
     def test_reshape_and_cache(self, torch_device, kv_cache_tensors):
         """Test reshape_and_cache operation."""
         import torch
+
         from vllm_metal.ops import reshape_and_cache
 
         key_cache = kv_cache_tensors["key_cache"]
         value_cache = kv_cache_tensors["value_cache"]
         num_kv_heads = kv_cache_tensors["num_kv_heads"]
         head_size = kv_cache_tensors["head_size"]
-        block_size = kv_cache_tensors["block_size"]
 
         # Create key/value to store
         num_tokens = 5
         key = torch.randn(
-            num_tokens, num_kv_heads, head_size,
-            device=torch_device, dtype=torch.float16
+            num_tokens,
+            num_kv_heads,
+            head_size,
+            device=torch_device,
+            dtype=torch.float16,
         )
         value = torch.randn(
-            num_tokens, num_kv_heads, head_size,
-            device=torch_device, dtype=torch.float16
+            num_tokens,
+            num_kv_heads,
+            head_size,
+            device=torch_device,
+            dtype=torch.float16,
         )
 
         # Create slot mapping (store in first block)
@@ -176,6 +182,7 @@ class TestCache:
     def test_copy_blocks(self, torch_device, kv_cache_tensors):
         """Test copy_blocks operation."""
         import torch
+
         from vllm_metal.ops import copy_blocks
 
         key_cache = kv_cache_tensors["key_cache"]
@@ -204,28 +211,27 @@ class TestRotary:
     """Tests for rotary embedding operations."""
 
     def test_mlx_rotary_embedding(self):
-        """Test MLX rotary embedding."""
-        import torch
+        """Test MLX rotary embedding via mlx_apply_rope which handles shape internally."""
         import mlx.core as mx
-        from vllm_metal.mlx import mlx_rotary_embedding
 
+        from vllm_metal.mlx import mlx_apply_rope
+
+        batch_size = 1
         seq_len = 16
         num_heads = 8
         head_dim = 64
 
-        # Create input
-        x = mx.random.normal(shape=(seq_len, num_heads, head_dim))
+        # Create query and key tensors
+        query = mx.random.normal(shape=(batch_size, seq_len, num_heads, head_dim))
+        key = mx.random.normal(shape=(batch_size, seq_len, num_heads, head_dim))
 
-        # Create cos/sin (half of head_dim)
-        rotary_dim = head_dim // 2
-        cos = mx.random.normal(shape=(seq_len, rotary_dim))
-        sin = mx.random.normal(shape=(seq_len, rotary_dim))
-
-        # Expand to full rotary_dim
-        cos_full = mx.concatenate([cos, cos], axis=-1)
-        sin_full = mx.concatenate([sin, sin], axis=-1)
+        # Create position indices
+        positions = mx.arange(seq_len)
 
         # Apply rotary embedding
-        output = mlx_rotary_embedding(x, cos_full, sin_full, is_neox_style=True)
+        query_out, key_out = mlx_apply_rope(
+            query, key, positions, head_dim=head_dim, is_neox_style=True
+        )
 
-        assert output.shape == x.shape
+        assert query_out.shape == query.shape
+        assert key_out.shape == key.shape

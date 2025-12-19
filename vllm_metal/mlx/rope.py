@@ -86,17 +86,27 @@ def _broadcast_for_rope(freqs: mx.array, x: mx.array) -> mx.array:
     """Broadcast frequency tensor to match input shape.
 
     Args:
-        freqs: Frequency tensor (cos or sin).
-        x: Input tensor to match shape with.
+        freqs: Frequency tensor (cos or sin) with shape:
+            - [seq_len, rotary_dim], or
+            - [batch, seq_len, rotary_dim]
+        x: Input tensor with shape [..., seq_len, num_heads, head_dim].
 
     Returns:
         Broadcasted frequency tensor.
     """
-    # Handle different input shapes
+    # freqs needs to broadcast to x's shape, but with num_heads=1 to broadcast
+    # x: [..., seq_len, num_heads, head_dim]
+    # freqs: [seq_len, dim] or [batch, seq_len, dim]
+    # target: [..., seq_len, 1, dim]
+
+    # Insert num_heads dimension at axis=-2
+    freqs = mx.expand_dims(freqs, axis=-2)  # Add num_heads=1 dimension
+
+    # Add batch dimensions at front if needed
     while freqs.ndim < x.ndim:
         freqs = freqs[None, ...]
 
-    # Ensure freqs can broadcast with x
+    # Build target shape for broadcasting
     target_shape = list(x.shape)
     target_shape[-1] = freqs.shape[-1]
 

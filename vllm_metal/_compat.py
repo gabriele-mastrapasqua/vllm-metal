@@ -85,7 +85,7 @@ except ImportError:
     CUDAGraphMode = None  # type: ignore[misc, assignment]
 
 if TYPE_CHECKING:
-    from vllm.config import VllmConfig as VllmConfigType
+    pass
 
 __all__ = [
     "VllmConfig",

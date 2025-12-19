@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for MLX tensor bridge."""
 
-import pytest
 import numpy as np
+import pytest
 
 
 @pytest.mark.mlx
@@ -11,8 +11,9 @@ class TestTensorBridge:
 
     def test_to_mlx_from_torch(self, torch_device):
         """Test converting PyTorch tensor to MLX array."""
-        import torch
         import mlx.core as mx
+        import torch
+
         from vllm_metal.mlx import to_mlx
 
         # Create PyTorch tensor
@@ -27,8 +28,9 @@ class TestTensorBridge:
 
     def test_to_torch_from_mlx(self, torch_device):
         """Test converting MLX array to PyTorch tensor."""
-        import torch
         import mlx.core as mx
+        import torch
+
         from vllm_metal.mlx import to_torch
 
         # Create MLX array
@@ -43,7 +45,7 @@ class TestTensorBridge:
     def test_roundtrip_conversion(self):
         """Test roundtrip conversion preserves values."""
         import torch
-        import mlx.core as mx
+
         from vllm_metal.mlx import to_mlx, to_torch
 
         # Create original tensor
@@ -63,8 +65,9 @@ class TestTensorBridge:
 
     def test_float16_conversion(self):
         """Test float16 conversion."""
-        import torch
         import mlx.core as mx
+        import torch
+
         from vllm_metal.mlx import to_mlx, to_torch
 
         # Create float16 tensor
@@ -80,8 +83,9 @@ class TestTensorBridge:
 
     def test_bfloat16_conversion(self):
         """Test bfloat16 conversion."""
-        import torch
         import mlx.core as mx
+        import torch
+
         from vllm_metal.mlx import to_mlx, to_torch
 
         # Create bfloat16 tensor
@@ -98,6 +102,7 @@ class TestTensorBridge:
     def test_tensor_bridge_context_manager(self):
         """Test TensorBridge context manager."""
         import torch
+
         from vllm_metal.mlx import TensorBridge
 
         original = torch.randn(4, 8, dtype=torch.float32)
@@ -110,8 +115,9 @@ class TestTensorBridge:
 
     def test_dtype_mapping(self):
         """Test dtype conversion functions."""
-        import torch
         import mlx.core as mx
+        import torch
+
         from vllm_metal.mlx.tensor_bridge import get_mlx_dtype, get_torch_dtype
 
         # Test PyTorch to MLX

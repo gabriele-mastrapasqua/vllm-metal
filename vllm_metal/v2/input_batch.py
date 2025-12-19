@@ -55,7 +55,9 @@ def prepare_prefill_inputs(
         dst_start = query_start
         dst_end = query_start + query_len
 
-        input_ids[dst_start:dst_end] = prefill_token_ids[req_state_idx, src_start:src_end]
+        input_ids[dst_start:dst_end] = prefill_token_ids[
+            req_state_idx, src_start:src_end
+        ]
 
         # Update next_prefill_tokens
         next_prefill_tokens[req_state_idx] = num_computed + query_len

@@ -5,14 +5,12 @@ This module provides efficient conversion between PyTorch tensors and
 MLX arrays, leveraging Apple Silicon's unified memory architecture.
 """
 
-from typing import Union
-
 import mlx.core as mx
 import numpy as np
 import torch
 
 # Type alias for tensor-like objects
-TensorLike = Union[torch.Tensor, mx.array, np.ndarray]
+TensorLike = torch.Tensor | mx.array | np.ndarray
 
 
 def to_mlx(tensor: TensorLike) -> mx.array:

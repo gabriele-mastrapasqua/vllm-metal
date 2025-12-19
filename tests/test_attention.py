@@ -2,7 +2,6 @@
 """Tests for Metal attention backend."""
 
 import pytest
-import numpy as np
 
 
 @pytest.mark.mlx
@@ -33,12 +32,12 @@ class TestMetalAttention:
             head_size=64,
         )
 
-        assert shape == (32, 16, 8, 64)
+        # Shape includes leading dimension of 2 for K and V
+        assert shape == (2, 32, 16, 8, 64)
 
     def test_mlx_sdpa(self, sample_tensors):
         """Test MLX scaled dot-product attention."""
-        import mlx.core as mx
-        from vllm_metal.mlx import mlx_scaled_dot_product_attention, to_mlx, to_torch
+        from vllm_metal.mlx import mlx_scaled_dot_product_attention, to_mlx
 
         query = sample_tensors["query"]
         key = sample_tensors["key"]
@@ -66,7 +65,7 @@ class TestMetalAttention:
         impl = MetalAttentionImpl(
             num_heads=8,
             head_size=64,
-            scale=1.0 / (64 ** 0.5),
+            scale=1.0 / (64**0.5),
             num_kv_heads=8,
         )
 
@@ -82,7 +81,7 @@ class TestMetalAttention:
         impl = MetalAttentionImpl(
             num_heads=16,
             head_size=64,
-            scale=1.0 / (64 ** 0.5),
+            scale=1.0 / (64**0.5),
             num_kv_heads=4,  # GQA: 4 groups of 4 heads
         )
 
@@ -98,6 +97,7 @@ class TestPagedAttention:
     def test_paged_attention_v1(self, torch_device, kv_cache_tensors):
         """Test paged attention v1."""
         import torch
+
         from vllm_metal.ops import paged_attention_v1
 
         batch_size = 2
@@ -107,8 +107,7 @@ class TestPagedAttention:
 
         # Create query
         query = torch.randn(
-            batch_size, num_heads, head_size,
-            device=torch_device, dtype=torch.float16
+            batch_size, num_heads, head_size, device=torch_device, dtype=torch.float16
         )
 
         # Create output tensor
@@ -117,17 +116,18 @@ class TestPagedAttention:
         # Create block table
         max_blocks = 4
         block_tables = torch.zeros(
-            batch_size, max_blocks,
-            device=torch_device, dtype=torch.int32
+            batch_size, max_blocks, device=torch_device, dtype=torch.int32
         )
         block_tables[0, :2] = torch.tensor([0, 1])
         block_tables[1, :2] = torch.tensor([2, 3])
 
         seq_lens_tensor = torch.tensor(seq_lens, device=torch_device, dtype=torch.int32)
 
-        # Populate some cache data
-        key_cache = kv_cache_tensors["key_cache"]
-        value_cache = kv_cache_tensors["value_cache"]
+        # Populate some cache data - fill blocks 0-3 with random data
+        key_cache = kv_cache_tensors["key_cache"].clone()
+        value_cache = kv_cache_tensors["value_cache"].clone()
+        key_cache[:4] = torch.randn_like(key_cache[:4])
+        value_cache[:4] = torch.randn_like(value_cache[:4])
 
         # Just verify it runs without error
         paged_attention_v1(
@@ -136,7 +136,7 @@ class TestPagedAttention:
             key_cache=key_cache,
             value_cache=value_cache,
             num_kv_heads=8,
-            scale=1.0 / (64 ** 0.5),
+            scale=1.0 / (64**0.5),
             block_tables=block_tables,
             seq_lens=seq_lens_tensor,
             block_size=16,

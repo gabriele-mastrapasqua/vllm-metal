@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Any
 
 import mlx.core as mx
-import mlx.nn as nn
 import torch
 from huggingface_hub import snapshot_download
 from safetensors import safe_open
@@ -56,7 +55,6 @@ def load_weights_to_mlx(model_path: Path) -> dict[str, mx.array]:
     Returns:
         Dictionary mapping weight names to MLX arrays
     """
-    import numpy as np
     weights = {}
 
     # Find all safetensor files
@@ -87,13 +85,15 @@ def load_weights_to_mlx(model_path: Path) -> dict[str, mx.array]:
     return weights
 
 
-def convert_weight_names(weights: dict[str, mx.array], config: dict) -> dict[str, mx.array]:
+def convert_weight_names(
+    weights: dict[str, mx.array], config: dict
+) -> dict[str, mx.array]:
     """Convert HuggingFace weight names to our MLX model format.
 
     Different model architectures use different naming conventions.
     This function normalizes them.
     """
-    arch = config.get("architectures", [""])[0].lower()
+    _ = config  # Reserved for architecture-specific conversions
 
     # Map common patterns
     converted = {}
@@ -123,10 +123,12 @@ class MLXModelConfig:
         self.intermediate_size = config.get("intermediate_size", 11008)
         self.num_hidden_layers = config.get("num_hidden_layers", 32)
         self.num_attention_heads = config.get("num_attention_heads", 32)
-        self.num_key_value_heads = config.get("num_key_value_heads",
-                                               config.get("num_attention_heads", 32))
-        self.head_dim = config.get("head_dim",
-                                   self.hidden_size // self.num_attention_heads)
+        self.num_key_value_heads = config.get(
+            "num_key_value_heads", config.get("num_attention_heads", 32)
+        )
+        self.head_dim = config.get(
+            "head_dim", self.hidden_size // self.num_attention_heads
+        )
         self.rms_norm_eps = config.get("rms_norm_eps", 1e-6)
         self.rope_theta = config.get("rope_theta", 10000.0)
         self.max_position_embeddings = config.get("max_position_embeddings", 4096)
@@ -139,8 +141,10 @@ class MLXModelConfig:
         self.model_type = config.get("model_type", "llama")
 
     def __repr__(self):
-        return (f"MLXModelConfig(hidden={self.hidden_size}, layers={self.num_hidden_layers}, "
-                f"heads={self.num_attention_heads}, kv_heads={self.num_key_value_heads})")
+        return (
+            f"MLXModelConfig(hidden={self.hidden_size}, layers={self.num_hidden_layers}, "
+            f"heads={self.num_attention_heads}, kv_heads={self.num_key_value_heads})"
+        )
 
 
 def detect_qk_norm(weights: dict[str, mx.array]) -> bool:
@@ -151,6 +155,7 @@ def detect_qk_norm(weights: dict[str, mx.array]) -> bool:
 def get_model_class(config: MLXModelConfig):
     """Get the appropriate MLX model class for the architecture."""
     from vllm_metal.mlx.models import MLXTransformer
+
     return MLXTransformer
 
 

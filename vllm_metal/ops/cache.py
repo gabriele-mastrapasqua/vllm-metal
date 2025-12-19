@@ -1,17 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Metal KV cache operations."""
 
-from typing import Dict, List, Tuple
-
 import torch
-
-from vllm_metal.mlx import (
-    mlx_copy_blocks,
-    mlx_reshape_and_cache,
-    mlx_swap_blocks,
-    to_mlx,
-    to_torch,
-)
 
 
 def reshape_and_cache(
@@ -54,8 +44,8 @@ def reshape_and_cache(
 
 
 def copy_blocks(
-    key_caches: List[torch.Tensor],
-    value_caches: List[torch.Tensor],
+    key_caches: list[torch.Tensor],
+    value_caches: list[torch.Tensor],
     block_mapping: torch.Tensor,
 ) -> None:
     """Copy cache blocks from source to destination.
@@ -72,7 +62,7 @@ def copy_blocks(
         return
 
     # Process each layer's cache
-    for key_cache, value_cache in zip(key_caches, value_caches):
+    for key_cache, value_cache in zip(key_caches, value_caches, strict=False):
         # Use PyTorch for in-place operations
         for pair in block_mapping:
             src = int(pair[0])
@@ -84,7 +74,7 @@ def copy_blocks(
 def swap_blocks(
     src_cache: torch.Tensor,
     dst_cache: torch.Tensor,
-    block_mapping: Dict[int, int],
+    block_mapping: dict[int, int],
 ) -> None:
     """Swap cache blocks between tensors.
 

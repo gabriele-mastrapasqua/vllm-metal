@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Metal sampling operations."""
 
-from typing import Optional
-
 import torch
 
 from vllm_metal.mlx import to_mlx, to_torch
@@ -47,14 +45,16 @@ def sampling_from_probs(
     result = mx.stack(indices)
 
     # Convert back and copy to output
-    result_torch = to_torch(result, device=output_indices.device, dtype=output_indices.dtype)
+    result_torch = to_torch(
+        result, device=output_indices.device, dtype=output_indices.dtype
+    )
     output_indices.copy_(result_torch)
 
 
 def multinomial_sample(
     probs: torch.Tensor,
     num_samples: int = 1,
-    generator: Optional[torch.Generator] = None,
+    generator: torch.Generator | None = None,
 ) -> torch.Tensor:
     """Sample from multinomial distribution.
 
@@ -74,7 +74,7 @@ def top_k_sampling(
     logits: torch.Tensor,
     top_k: int,
     temperature: float = 1.0,
-    generator: Optional[torch.Generator] = None,
+    generator: torch.Generator | None = None,
 ) -> torch.Tensor:
     """Top-k sampling from logits.
 
@@ -87,14 +87,10 @@ def top_k_sampling(
     Returns:
         Sampled token indices [batch].
     """
-    import mlx.core as mx
 
     # Apply temperature
     if temperature != 1.0:
         logits = logits / temperature
-
-    # Convert to MLX for top-k
-    logits_mlx = to_mlx(logits)
 
     batch_size, vocab_size = logits.shape
     sampled_indices = []
@@ -113,7 +109,9 @@ def top_k_sampling(
         else:
             # Sample from full distribution
             probs = torch.softmax(logits[i], dim=-1)
-            sampled_token = torch.multinomial(probs.unsqueeze(0), 1, generator=generator).squeeze()
+            sampled_token = torch.multinomial(
+                probs.unsqueeze(0), 1, generator=generator
+            ).squeeze()
 
         sampled_indices.append(sampled_token)
 
@@ -124,7 +122,7 @@ def top_p_sampling(
     logits: torch.Tensor,
     top_p: float,
     temperature: float = 1.0,
-    generator: Optional[torch.Generator] = None,
+    generator: torch.Generator | None = None,
 ) -> torch.Tensor:
     """Top-p (nucleus) sampling from logits.
 
@@ -160,7 +158,9 @@ def top_p_sampling(
 
         # Sample from filtered distribution
         filtered_probs = torch.softmax(sorted_logits, dim=-1)
-        sample_idx = torch.multinomial(filtered_probs.unsqueeze(0), 1, generator=generator)
+        sample_idx = torch.multinomial(
+            filtered_probs.unsqueeze(0), 1, generator=generator
+        )
         sampled_token = sorted_indices[sample_idx.squeeze()]
         sampled_indices.append(sampled_token)
 

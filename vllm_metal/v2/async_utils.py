@@ -60,7 +60,7 @@ class MetalAsyncOutput:
 
         # Handle logprobs if present
         if sampler_output.logprobs_tensors is not None:
-            self.logprobs_tensors: "LogprobsTensors | None" = (
+            self.logprobs_tensors: LogprobsTensors | None = (
                 sampler_output.logprobs_tensors.to_cpu_nonblocking()
             )
         else:
@@ -69,7 +69,7 @@ class MetalAsyncOutput:
         self.num_sampled_tokens_cpu = num_sampled_tokens.to("cpu")
 
         # Handle prompt logprobs dict
-        self.prompt_logprobs_dict: dict[str, "LogprobsTensors | None"] = {}
+        self.prompt_logprobs_dict: dict[str, LogprobsTensors | None] = {}
         if self.model_runner_output.prompt_logprobs_dict:
             for k, v in self.model_runner_output.prompt_logprobs_dict.items():
                 if v is not None:
@@ -97,7 +97,7 @@ class MetalAsyncOutput:
         num_reqs = len(sampled_token_ids)
         for i in range(num_reqs):
             # Truncate to actual number of sampled tokens
-            del sampled_token_ids[i][num_sampled_tokens_np[i]:]
+            del sampled_token_ids[i][num_sampled_tokens_np[i] :]
 
         self.model_runner_output.sampled_token_ids = sampled_token_ids
 

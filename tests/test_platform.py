@@ -60,6 +60,7 @@ class TestMetalPlatform:
     def test_platform_supports_dtype(self):
         """Test dtype support checking."""
         import torch
+
         from vllm_metal.platform import MetalPlatform
 
         assert MetalPlatform.check_if_supports_dtype(torch.float32)

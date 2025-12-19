@@ -6,14 +6,12 @@ with PyTorch bridging only at input/output boundaries.
 """
 
 import logging
-from typing import Optional, List, Tuple, Any
 
 import mlx.core as mx
 import numpy as np
 import torch
 
-from vllm_metal.mlx.models import MLXTransformer
-from vllm_metal.mlx.model_loader import load_mlx_model, MLXModelConfig
+from vllm_metal.mlx.model_loader import load_mlx_model
 
 logger = logging.getLogger(__name__)
 
@@ -96,8 +94,8 @@ class MLXEngine:
     def forward(
         self,
         input_ids: torch.Tensor,
-        cache_ids: Optional[List[int]] = None,
-    ) -> Tuple[torch.Tensor, List[int]]:
+        cache_ids: list[int] | None = None,
+    ) -> tuple[torch.Tensor, list[int]]:
         """Run forward pass with boundary-only bridging.
 
         Args:
@@ -130,14 +128,14 @@ class MLXEngine:
             all_logits = []
             new_caches = []
             for i in range(batch_size):
-                single_input = mlx_input_ids[i:i+1]
+                single_input = mlx_input_ids[i : i + 1]
                 single_logits, single_cache = self.model(single_input, caches[i])
                 all_logits.append(single_logits)
                 new_caches.append(single_cache)
             logits = mx.concatenate(all_logits, axis=0)
 
         # Store updated caches
-        for cid, cache in zip(cache_ids, new_caches):
+        for cid, cache in zip(cache_ids, new_caches, strict=False):
             self._caches[cid] = cache
 
         # === BRIDGE OUT: MLX -> PyTorch (logits only) ===
@@ -148,7 +146,7 @@ class MLXEngine:
     def prefill(
         self,
         input_ids: torch.Tensor,
-    ) -> Tuple[torch.Tensor, List[int]]:
+    ) -> tuple[torch.Tensor, list[int]]:
         """Prefill phase - process full prompt.
 
         Args:
@@ -157,15 +155,12 @@ class MLXEngine:
         Returns:
             Tuple of (logits, cache_ids)
         """
-        batch_size = input_ids.shape[0]
-        # Create new cache IDs
-        cache_ids = [id(input_ids) + i for i in range(batch_size)]
         return self.forward(input_ids, cache_ids=None)
 
     def decode(
         self,
         input_ids: torch.Tensor,
-        cache_ids: List[int],
+        cache_ids: list[int],
     ) -> torch.Tensor:
         """Decode phase - process single token with cache.
 
@@ -179,7 +174,7 @@ class MLXEngine:
         logits, _ = self.forward(input_ids, cache_ids)
         return logits
 
-    def clear_cache(self, cache_id: Optional[int] = None):
+    def clear_cache(self, cache_id: int | None = None):
         """Clear KV cache.
 
         Args:
@@ -196,7 +191,7 @@ class MLXEngine:
         max_new_tokens: int = 100,
         temperature: float = 1.0,
         top_p: float = 1.0,
-        eos_token_id: Optional[int] = None,
+        eos_token_id: int | None = None,
     ) -> torch.Tensor:
         """Generate tokens with boundary-only bridging.
 

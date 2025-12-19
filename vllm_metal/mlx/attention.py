@@ -4,8 +4,6 @@
 import mlx.core as mx
 import mlx.core.fast as mx_fast
 
-from vllm_metal.mlx.tensor_bridge import to_mlx, to_torch
-
 
 def mlx_scaled_dot_product_attention(
     query: mx.array,
@@ -31,7 +29,7 @@ def mlx_scaled_dot_product_attention(
     """
     if scale is None:
         head_dim = query.shape[-1]
-        scale = head_dim ** -0.5
+        scale = head_dim**-0.5
 
     # MLX's fast SDPA is optimized for Apple Silicon
     output = mx_fast.scaled_dot_product_attention(
@@ -79,7 +77,7 @@ def mlx_paged_attention(
     block_size = key_cache.shape[1]
 
     if scale is None:
-        scale = head_dim ** -0.5
+        scale = head_dim**-0.5
 
     # Process each sequence in the batch
     outputs = []
@@ -162,7 +160,7 @@ def mlx_prefill_attention(
     num_kv_heads = key.shape[1]
 
     if scale is None:
-        scale = head_dim ** -0.5
+        scale = head_dim**-0.5
 
     # Process each sequence
     outputs = []

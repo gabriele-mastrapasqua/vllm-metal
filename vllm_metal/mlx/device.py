@@ -6,7 +6,7 @@ import mlx.core as mx
 from vllm_metal.envs import VLLM_MLX_DEVICE
 
 
-def get_mlx_device() -> mx.Device:
+def get_mlx_device() -> mx.DeviceType:
     """Get the MLX device to use for computation.
 
     Returns:

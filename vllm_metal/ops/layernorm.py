@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Metal normalization operations."""
 
-from typing import Optional, Tuple
-
 import torch
 
 from vllm_metal.mlx import (
@@ -27,7 +25,6 @@ def rms_norm(
         weight: Scale parameter [hidden_size].
         eps: Small constant for numerical stability.
     """
-    import mlx.core as mx
 
     # Convert to MLX
     x_mlx = to_mlx(input)
@@ -46,7 +43,7 @@ def fused_add_rms_norm(
     residual: torch.Tensor,
     weight: torch.Tensor,
     eps: float = 1e-6,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Fused residual addition and RMS normalization using MLX.
 
     This combines residual addition and RMS normalization into a single
@@ -61,7 +58,6 @@ def fused_add_rms_norm(
     Returns:
         Tuple of (normalized_output, updated_residual).
     """
-    import mlx.core as mx
 
     # Convert to MLX
     x_mlx = to_mlx(input)
@@ -82,7 +78,7 @@ def layer_norm(
     output: torch.Tensor,
     input: torch.Tensor,
     weight: torch.Tensor,
-    bias: Optional[torch.Tensor] = None,
+    bias: torch.Tensor | None = None,
     eps: float = 1e-5,
 ) -> None:
     """Layer normalization using MLX.
@@ -94,9 +90,8 @@ def layer_norm(
         bias: Optional bias parameter [hidden_size].
         eps: Small constant for numerical stability.
     """
-    from vllm_metal.mlx import mlx_layer_norm
 
-    import mlx.core as mx
+    from vllm_metal.mlx import mlx_layer_norm
 
     # Convert to MLX
     x_mlx = to_mlx(input)

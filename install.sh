@@ -62,7 +62,7 @@ if [[ "$PYTHON_MINOR" -ge 14 ]]; then
     warn "If you encounter build issues, try Python 3.12 or 3.13."
 fi
 
-if [[ "$PYTHON_MAJOR" -lt 3 ]] || [[ "$PYTHON_MAJOR" -eq 3 && "$PYTHON_MINOR" -lt 11 ]]; then
+if [[ "$PYTHON_MAJOR" -lt 3 ]] || [[ "$PYTHON_MAJOR" -eq 3 && "$PYTHON_MINOR" -lt 12 ]]; then
     error "Python 3.11+ is required. Current version: $PYTHON_VERSION"
 fi
 
@@ -81,10 +81,12 @@ if [[ -z "$VIRTUAL_ENV" ]]; then
 
     if [[ -d ".venv" ]]; then
         info "Found existing .venv, activating..."
+        # shellcheck source=/dev/null
         source .venv/bin/activate
     else
         info "Creating virtual environment..."
         python3 -m venv .venv
+        # shellcheck source=/dev/null
         source .venv/bin/activate
         info "Virtual environment activated"
     fi
