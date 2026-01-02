@@ -134,6 +134,84 @@ class TestRotaryEmbedding:
 
         assert q_rot.shape == q.shape
         assert k_rot.shape == k.shape
+        assert q_rot.dtype == q.dtype
+        assert k_rot.dtype == k.dtype
+
+    def test_rotary_embedding_position_zero_is_identity(self) -> None:
+        """Position 0 should not change the input (cos=1, sin=0).
+
+        RoPE rotates (q, k) in independent 2D planes. For the traditional RoPE
+        layout, the planes are consecutive pairs in the last dimension:
+        (0,1), (2,3), (4,5), ...
+
+        At position 0, all rotation angles are 0 => cos=1 and sin=0, so the
+        transform must be the identity.
+        """
+        batch = 2
+        seq_len = 3
+        num_heads = 2
+        head_dim = 8
+
+        q = mx.random.normal((batch, seq_len, num_heads, head_dim))
+        k = mx.random.normal((batch, seq_len, num_heads, head_dim))
+        positions = mx.zeros((batch, seq_len), dtype=mx.int32)
+
+        q_rot, k_rot = rotary_embedding(q, k, positions, head_dim)
+        mx.eval(q_rot, k_rot)
+
+        assert q_rot.shape == q.shape
+        assert k_rot.shape == k.shape
+        assert mx.allclose(q_rot, q, atol=1e-5)
+        assert mx.allclose(k_rot, k, atol=1e-5)
+
+    def test_rotary_embedding_matches_mx_fast_rope_traditional(self) -> None:
+        """Our implementation should match MLX's reference RoPE.
+
+        mx.fast.rope implements RoPE internally; `traditional=True` matches the
+        consecutive-pair layout used by this plugin.
+        """
+        batch = 2
+        seq_len = 5
+        num_heads = 3
+        head_dim = 8
+
+        q = mx.random.normal((batch, seq_len, num_heads, head_dim))
+        k = mx.random.normal((batch, seq_len, num_heads, head_dim))
+
+        positions = mx.arange(seq_len, dtype=mx.int32)[None, :]
+        positions = mx.broadcast_to(positions, (batch, seq_len))
+
+        q_rot, k_rot = rotary_embedding(q, k, positions, head_dim, rope_theta=10000.0)
+
+        # mx.fast.rope expects the sequence dimension at axis -2, so use
+        # (batch, heads, seq_len, head_dim).
+        q_ref = mx.fast.rope(
+            mx.transpose(q, (0, 2, 1, 3)),
+            head_dim,
+            traditional=True,
+            base=10000.0,
+            scale=1.0,
+            offset=0,
+        )
+        k_ref = mx.fast.rope(
+            mx.transpose(k, (0, 2, 1, 3)),
+            head_dim,
+            traditional=True,
+            base=10000.0,
+            scale=1.0,
+            offset=0,
+        )
+        q_ref = mx.transpose(q_ref, (0, 2, 1, 3))
+        k_ref = mx.transpose(k_ref, (0, 2, 1, 3))
+
+        mx.eval(q_rot, k_rot, q_ref, k_ref)
+
+        assert q_rot.shape == q.shape
+        assert k_rot.shape == k.shape
+        assert q_ref.shape == q.shape
+        assert k_ref.shape == k.shape
+        assert mx.allclose(q_rot, q_ref, atol=1e-5)
+        assert mx.allclose(k_rot, k_ref, atol=1e-5)
 
     def test_rotary_embedding_different_positions(self) -> None:
         """Test that different positions give different embeddings."""
